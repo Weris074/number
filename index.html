@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Игра Угадай Число</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 50px;
+            background-image: linear-gradient(to right bottom, #ffd700, #ffa500); /* Цвет фона */
+            animation: bg-pulse 10s infinite alternate;
+        }
+        
+        @keyframes bg-pulse {
+            from {background-position: 0%;}
+            to {background-position: 100%; transform: scale(1.05);}
+        }
+        
+        h1 {
+            color: white;
+            font-size: 3rem;
+            letter-spacing: 2px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        input[type=number], button {
+            padding: 20px;
+            font-size: 20px;
+            border-radius: 15px;
+            outline: none;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
+            transition: all 0.3s ease-in-out;
+            cursor: pointer;
+        }
+        
+        input[type=number]:hover,
+        button:hover {
+            background-color: #fffaf0;
+            transform: scale(1.05);
+        }
+        
+        input[type=number]:focus,
+        button:focus {
+            background-color: #ffe4b5;
+        }
+        
+        p#result {
+            font-weight: bold;
+            color: green;
+            font-size: 1.5rem;
+            animation: pulse 1s infinite alternate;
+        }
+        
+        @keyframes pulse {
+            from {transform: scale(1)}
+            to {transform: scale(1.05)}
+        }
+        
+        p#message {
+            font-style: italic;
+            color: white;
+            font-size: 1.2rem;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        
+        ul#clues-list li {
+            list-style-type: circle;
+            line-height: 1.5em;
+            color: #ffffff;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        
+        .green-text { color: limegreen !important; }
+        .yellow-text { color: gold !important; }
+        .blue-text { color: dodgerblue !important; }
+        .red-text { color: tomato !important; }
+    </style>
+</head>
+<body>
+
+<h1>🎉 Игра «Угадай число!» 🎉</h1>
+<p id="message">Попробуй угадать число от 1 до 100!</p>
+<input type="number" min="1" max="100" placeholder="Введи число..." id="guessInput">
+<button onclick="checkGuess()">✅ Проверить!</button><br><br>
+<button onclick="resetGame()">🔄 Reset Game</button>
+<p id="result"></p>
+<div style="margin-top: 20px;">Подсказки:</div>
+<ul id="clues-list"></ul>
+
+<script>
+let targetNumber = null;
+let attempts = 0;
+let history = []; // История ранее введённых чисел
+let clues = [];
+let availableClueOptions = []; // Массив подсказок для текущей игры
+
+// Функция генерации случайного числа
+function generateRandomNumber() {
+    return Math.floor(Math.random() * 100) + 1;
+}
+
+// Проверка простого числа
+function isPrime(num) {
+    for (let i = 2, s = Math.sqrt(num); i <= s; i++) {
+        if (num % i === 0) return false;
+    }
+    return num > 1;
+}
+
+// Найти ближайшее целое число, близкое к квадратному корню
+function closestSquareRoot(num) {
+    return Math.round(Math.sqrt(num));
+}
+
+// Инициализация доступных подсказок для новой игры
+function initializeClueOptions() {
+    // Создаем новый массив подсказок, зависящий от targetNumber
+    availableClueOptions = [
+        () => `Число точно больше ${Math.min(targetNumber - 10, targetNumber - 1 > 1 ? targetNumber - 1 : 1)}`,
+        () => `Число точно меньше ${Math.max(targetNumber + 10, targetNumber + 1 < 100 ? targetNumber + 1 : 100)}`,
+        () => `Это число ближе всего к квадрату числа ${closestSquareRoot(targetNumber)}`,
+    ];
+
+    if (targetNumber % 2 === 0) {
+        availableClueOptions.push(() => `Это число чётное`);
+    } else {
+        availableClueOptions.push(() => `Это число нечётное`);
+    }
+
+    if (isPrime(targetNumber)) {
+        availableClueOptions.push(() => `Это число простое`);
+    }
+}
+
+// Генерирует загаданное число и инициализирует игру
+function setupGame() {
+    targetNumber = generateRandomNumber();
+    attempts = 0;
+    history = [];
+    clues = [];
+    initializeClueOptions(); // Инициализируем подсказки на основе нового targetNumber
+    updateClues(); // Обновляем список подсказок (он будет пустым в начале)
+    console.log("Загаданное число:", targetNumber); // Для отладки
+}
+
+setupGame(); // Инициализация игры при загрузке страницы
+
+// Основная логика проверки ввода
+function checkGuess() {
+    const guessInput = document.getElementById('guessInput');
+    const guess = parseInt(guessInput.value.trim(), 10);
+    const resultElement = document.getElementById('result');
+    const messageElement = document.getElementById('message');
+
+    if (!guess || isNaN(guess) || guess < 1 || guess > 100) {
+        alert("Нужно ввести число от 1 до 100!");
+        guessInput.value = '';
+        return;
+    }
+
+    if (history.includes(guess)) {
+        resultElement.classList.remove('green-text', 'yellow-text', 'blue-text');
+        resultElement.classList.add('red-text');
+        resultElement.textContent = `Ты уже это число вводил! Попробуй другое.`;
+        guessInput.value = '';
+        return;
+    }
+
+    attempts++;
+    history.push(guess);
+
+    if (guess === targetNumber) {
+        resultElement.classList.remove('yellow-text', 'blue-text', 'red-text');
+        resultElement.classList.add('green-text');
+        resultElement.textContent = `🎉 Верно! Ты угадал число ${targetNumber}. Количество попыток: ${attempts} 🎉`;
+        messageElement.style.display = 'none';
+        guessInput.disabled = true; // Отключаем ввод после победы
+    } else if (guess > targetNumber) {
+        resultElement.classList.remove('green-text', 'yellow-text', 'blue-text');
+        resultElement.classList.add('red-text');
+        resultElement.textContent = `Неверно! Сделай число поменьше.`;
+    } else {
+        resultElement.classList.remove('green-text', 'yellow-text', 'red-text');
+        resultElement.classList.add('blue-text');
+        resultElement.textContent = `Неверно! Сделай число побольше.`;
+    }
+
+    updateClues();
+    guessInput.value = ''; // Очищаем поле ввода после каждой попытки
+}
+
+// Обновление списка подсказок
+function updateClues() {
+    let cluesElement = document.getElementById('clues-list');
+    cluesElement.innerHTML = '';
+
+    // Добавляем новую подсказку только если ее еще нет и есть доступные
+    if (clues.length < attempts && availableClueOptions.length > 0) {
+        let randomIndex = Math.floor(Math.random() * availableClueOptions.length);
+        let newClue = availableClueOptions.splice(randomIndex, 1)[0]; 
+        clues.push(newClue());
+    }
+
+    clues.forEach((clue, index) => {
+        let item = document.createElement('li');
+        item.textContent = `${index + 1}) ${clue}`;
+        cluesElement.appendChild(item);
+    });
+}
+
+// Перезагрузка игры
+function resetGame() {
+    setupGame(); // Полная перенастройка игры
+    const resultElement = document.getElementById('result');
+    const messageElement = document.getElementById('message');
+    const guessInput = document.getElementById('guessInput');
+
+    resultElement.textContent = '';
+    resultElement.classList.remove('green-text', 'yellow-text', 'blue-text', 'red-text');
+    messageElement.style.display = '';
+    messageElement.textContent = 'Попробуй угадать число от 1 до 100!';
+    guessInput.value = '';
+    guessInput.disabled = false; // Включаем ввод
+}
+
+</script>
+
+</body>
+</html>
