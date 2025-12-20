@@ -8,13 +8,13 @@
             font-family: Arial, sans-serif;
             text-align: center;
             margin-top: 50px;
-            background-image: linear-gradient(to right bottom, #ffd700, #ffa500); /* Цвет фона */
-            animation: bg-pulse 10s infinite alternate;
+            background-image: linear-gradient(to right bottom, #fcefe8, #f7cfba); /* Цвет фона */
+            animation: bg-pulse 20s infinite alternate; /* Замедлил пульсацию */
         }
         
         @keyframes bg-pulse {
-            from {background-position: 0%;}
-            to {background-position: 100%; transform: scale(1.05);}
+            from {background-position: 0%; transform: scale(1);}
+            to {background-position: 100%; transform: scale(1.02); animation-timing-function: ease-in-out;} /* Уменьшил масштабирование */
         }
         
         h1 {
@@ -61,39 +61,270 @@
             font-style: italic;
             color: white;
             font-size: 1.2rem;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            text-shadow: 2px 2px 2px rgba(0,0,0,2);
         }
         
         ul#clues-list li {
             list-style-type: circle;
             line-height: 1.5em;
-            color: #ffffff;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            color: #333; /* Сделал черный цвет для подсказок */
+            text-shadow: none; /* Убрал тень, чтобы не мешала */
         }
         
         .green-text { color: limegreen !important; }
         .yellow-text { color: gold !important; }
         .blue-text { color: dodgerblue !important; }
         .red-text { color: tomato !important; }
+
+        #achievements-container {
+            margin-top: 40px;
+            padding: 20px;
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        #achievements-container h2 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+        .achievement-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+            color: #555;
+        }
+        .achievement-item.unlocked {
+            color: #28a745; /* Green for unlocked */
+            font-weight: bold;
+        }
+        .achievement-item::before {
+            content: '🔒';
+            margin-right: 10px;
+            font-size: 1.3rem;
+        }
+        .achievement-item.unlocked::before {
+            content: '🏆'; /* Trophy for unlocked */
+        }
+
+        #footer-buttons {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        #footer-buttons button {
+            padding: 10px 15px;
+            font-size: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        #footer-buttons button:hover {
+            background-color: #0056b3;
+        }
     </style>
 </head>
 <body>
 
-<h1>🎉 Игра «Угадай число!» 🎉</h1>
+<h1 id="game-title">🎉 Игра «Угадай число!» 🎉</h1>
 <p id="message">Попробуй угадать число от 1 до 100!</p>
 <input type="number" min="1" max="100" placeholder="Введи число..." id="guessInput">
-<button onclick="checkGuess()">✅ Проверить!</button><br><br>
-<button onclick="resetGame()">🔄 Reset Game</button>
+<button id="check-button" onclick="checkGuess()">✅ Проверить!</button><br><br>
+<button id="reset-button" onclick="resetGame()">🔄 Reset Game</button>
 <p id="result"></p>
-<div style="margin-top: 20px;">Подсказки:</div>
+<div id="clues-header" style="margin-top: 20px;">Подсказки:</div>
 <ul id="clues-list"></ul>
+
+<div id="achievements-container">
+    <h2 id="achievements-title">Твои Достижения</h2>
+    <div id="achievements-list">
+        <!-- Достижения будут добавлены сюда JavaScript-ом -->
+    </div>
+</div>
+
+<div id="footer-buttons">
+    <button id="report-button" onclick="reportBug()">Сообщить о баге</button>
+    <button id="lang-button" onclick="toggleLanguage()">Eng</button>
+</div>
 
 <script>
 let targetNumber = null;
 let attempts = 0;
-let history = []; // История ранее введённых чисел
+let history = []; 
 let clues = [];
-let availableClueOptions = []; // Массив подсказок для текущей игры
+let availableClueOptions = []; 
+let currentLang = localStorage.getItem('guessTheNumberLang') || 'ru'; // Загрузка языка или русский по умолчанию
+
+const texts = {
+    'ru': {
+        gameTitle: '🎉 Игра «Угадай число!» 🎉',
+        message: 'Попробуй угадать число от 1 до 100!',
+        inputPlaceholder: 'Введи число...',
+        checkButton: '✅ Проверить!',
+        resetButton: '🔄 Reset Game',
+        resultEnterNumber: 'Нужно ввести число от 1 до 100!',
+        resultAlreadyGuessed: 'Ты уже это число вводил! Попробуй другое.',
+        resultCorrect: (num, att) => `🎉 Верно! Ты угадал число ${num}. Количество попыток: ${att} 🎉`,
+        resultTooHigh: 'Неверно! Сделай число поменьше.',
+        resultTooLow: 'Неверно! Сделай число побольше.',
+        cluesHeader: 'Подсказки:',
+        achievementsTitle: 'Твои Достижения',
+        achievements: {
+            'genius_guess': { name: 'Очень просто для гения', description: 'Угадать число с 1 раза' },
+            'easy_peasy': { name: 'Это было просто', description: 'Угадать число до 5 попыток' },
+            'first_win': { name: 'Я сделал это', description: 'Угадать впервые' }
+        },
+        alertAchieveGenius: 'Достижение разблокировано: Очень просто для гения!',
+        alertAchieveEasy: 'Достижение разблокировано: Это было просто!',
+        alertAchieveFirst: 'Достижение разблокировано: Я сделал это!',
+        reportButton: 'Сообщить о баге',
+        langButton: 'Eng',
+        clueMoreThan: (num) => `Число точно больше ${num}`,
+        clueLessThan: (num) => `Число точно меньше ${num}`,
+        clueClosestSquare: (num) => `Это число ближе всего к квадрату числа ${num}`,
+        clueEven: 'Это число чётное',
+        clueOdd: 'Это число нечётное',
+        cluePrime: 'Это число простое',
+        clueNotPrime: 'Это число не простое',
+    },
+    'en': {
+        gameTitle: '🎉 Guess The Number Game! 🎉',
+        message: 'Try to guess the number from 1 to 100!',
+        inputPlaceholder: 'Enter your guess...',
+        checkButton: '✅ Check!',
+        resetButton: '🔄 Reset Game',
+        resultEnterNumber: 'You must enter a number between 1 and 100!',
+        resultAlreadyGuessed: 'You already guessed this number! Try another.',
+        resultCorrect: (num, att) => `🎉 Correct! You guessed ${num}. Attempts: ${att} 🎉`,
+        resultTooHigh: 'Incorrect! Go lower.',
+        resultTooLow: 'Incorrect! Go higher.',
+        cluesHeader: 'Clues:',
+        achievementsTitle: 'Your Achievements',
+        achievements: {
+            'genius_guess': { name: 'Genius Guess', description: 'Guess the number in 1 attempt' },
+            'easy_peasy': { name: 'Easy Peasy', description: 'Guess the number in less than 5 attempts' },
+            'first_win': { name: 'I Did It', description: 'Win for the first time' }
+        },
+        alertAchieveGenius: 'Achievement Unlocked: Genius Guess!',
+        alertAchieveEasy: 'Achievement Unlocked: Easy Peasy!',
+        alertAchieveFirst: 'Achievement Unlocked: I Did It!',
+        reportButton: 'Report Bug',
+        langButton: 'Ru',
+        clueMoreThan: (num) => `The number is definitely greater than ${num}`,
+        clueLessThan: (num) => `The number is definitely less than ${num}`,
+        clueClosestSquare: (num) => `This number is closest to the square of ${num}`,
+        clueEven: 'This number is even',
+        clueOdd: 'This number is odd',
+        cluePrime: 'This number is prime',
+        clueNotPrime: 'This number is not prime',
+    }
+};
+
+// Объект для хранения статуса достижений
+let achievements = {
+    'genius_guess': { name: '', description: '', unlocked: false },
+    'easy_peasy': { name: '', description: '', unlocked: false },
+    'first_win': { name: '', description: '', unlocked: false }
+};
+
+// Загрузка достижений из localStorage
+function loadAchievements() {
+    const savedAchievements = localStorage.getItem('guessTheNumberAchievements');
+    if (savedAchievements) {
+        const parsed = JSON.parse(savedAchievements);
+        for(const key in achievements) {
+            if (parsed[key]) {
+                achievements[key].unlocked = parsed[key].unlocked;
+            }
+        }
+    }
+}
+
+// Сохранение достижений в localStorage
+function saveAchievements() {
+    localStorage.setItem('guessTheNumberAchievements', JSON.stringify(achievements));
+}
+
+// Обновление текстовых элементов на странице в соответствии с выбранным языком
+function updateTexts() {
+    const currentTexts = texts[currentLang];
+
+    document.getElementById('game-title').textContent = currentTexts.gameTitle;
+    document.getElementById('message').textContent = currentTexts.message;
+    document.getElementById('guessInput').placeholder = currentTexts.inputPlaceholder;
+    document.getElementById('check-button').textContent = currentTexts.checkButton;
+    document.getElementById('reset-button').textContent = currentTexts.resetButton;
+    document.getElementById('clues-header').textContent = currentTexts.cluesHeader;
+    document.getElementById('achievements-title').textContent = currentTexts.achievementsTitle;
+    document.getElementById('report-button').textContent = currentTexts.reportButton;
+    document.getElementById('lang-button').textContent = currentTexts.langButton;
+
+    // Обновляем имена и описания достижений для текущего языка
+    for (const key in achievements) {
+        achievements[key].name = currentTexts.achievements[key].name;
+        achievements[key].description = currentTexts.achievements[key].description;
+    }
+
+    renderAchievements();
+    updateClues(); // Обновляем подсказки, чтобы они были на правильном языке
+}
+
+// Переключение языка
+function toggleLanguage() {
+    currentLang = currentLang === 'ru' ? 'en' : 'ru';
+    localStorage.setItem('guessTheNumberLang', currentLang);
+    updateTexts();
+}
+
+// Вызов функции при нажатии на кнопку "Репорт" (пока заглушка)
+function reportBug() {
+    alert(currentLang === 'ru' ? 'Спасибо за сообщение о баге! Разработчик уже бежит.' : 'Thanks for reporting a bug! Developer is on the way.');
+}
+
+// Отображение достижений на странице
+function renderAchievements() {
+    const achievementsList = document.getElementById('achievements-list');
+    achievementsList.innerHTML = '';
+
+    for (const key in achievements) {
+        const ach = achievements[key];
+        const item = document.createElement('div');
+        item.classList.add('achievement-item');
+        if (ach.unlocked) {
+            item.classList.add('unlocked');
+        }
+        item.textContent = `${ach.name}: ${ach.description}`;
+        achievementsList.appendChild(item);
+    }
+}
+
+// Проверка и разблокировка достижений
+function checkAchievements() {
+    const currentTexts = texts[currentLang];
+    if (attempts === 1 && !achievements.genius_guess.unlocked) {
+        achievements.genius_guess.unlocked = true;
+        alert(currentTexts.alertAchieveGenius);
+    }
+    if (attempts <= 5 && !achievements.easy_peasy.unlocked) {
+        achievements.easy_peasy.unlocked = true;
+        alert(currentTexts.alertAchieveEasy);
+    }
+    if (!achievements.first_win.unlocked) {
+        achievements.first_win.unlocked = true;
+        alert(currentTexts.alertAchieveFirst);
+    }
+    saveAchievements();
+    renderAchievements();
+}
 
 // Функция генерации случайного числа
 function generateRandomNumber() {
@@ -115,21 +346,23 @@ function closestSquareRoot(num) {
 
 // Инициализация доступных подсказок для новой игры
 function initializeClueOptions() {
-    // Создаем новый массив подсказок, зависящий от targetNumber
+    const currentTexts = texts[currentLang];
     availableClueOptions = [
-        () => `Число точно больше ${Math.min(targetNumber - 10, targetNumber - 1 > 1 ? targetNumber - 1 : 1)}`,
-        () => `Число точно меньше ${Math.max(targetNumber + 10, targetNumber + 1 < 100 ? targetNumber + 1 : 100)}`,
-        () => `Это число ближе всего к квадрату числа ${closestSquareRoot(targetNumber)}`,
+        () => currentTexts.clueMoreThan(Math.min(targetNumber - 10, targetNumber - 1 > 1 ? targetNumber - 1 : 1)),
+        () => currentTexts.clueLessThan(Math.max(targetNumber + 10, targetNumber + 1 < 100 ? targetNumber + 1 : 100)),
+        () => currentTexts.clueClosestSquare(closestSquareRoot(targetNumber)),
     ];
 
     if (targetNumber % 2 === 0) {
-        availableClueOptions.push(() => `Это число чётное`);
+        availableClueOptions.push(() => currentTexts.clueEven);
     } else {
-        availableClueOptions.push(() => `Это число нечётное`);
+        availableClueOptions.push(() => currentTexts.clueOdd);
     }
 
     if (isPrime(targetNumber)) {
-        availableClueOptions.push(() => `Это число простое`);
+        availableClueOptions.push(() => currentTexts.cluePrime);
+    } else if (targetNumber > 1) { // Добавляем подсказку "не простое", если число не простое и больше 1
+        availableClueOptions.push(() => currentTexts.clueNotPrime);
     }
 }
 
@@ -139,12 +372,10 @@ function setupGame() {
     attempts = 0;
     history = [];
     clues = [];
-    initializeClueOptions(); // Инициализируем подсказки на основе нового targetNumber
-    updateClues(); // Обновляем список подсказок (он будет пустым в начале)
-    console.log("Загаданное число:", targetNumber); // Для отладки
+    initializeClueOptions();
+    updateClues();
+    console.log("Загаданное число:", targetNumber);
 }
-
-setupGame(); // Инициализация игры при загрузке страницы
 
 // Основная логика проверки ввода
 function checkGuess() {
@@ -152,9 +383,10 @@ function checkGuess() {
     const guess = parseInt(guessInput.value.trim(), 10);
     const resultElement = document.getElementById('result');
     const messageElement = document.getElementById('message');
+    const currentTexts = texts[currentLang];
 
     if (!guess || isNaN(guess) || guess < 1 || guess > 100) {
-        alert("Нужно ввести число от 1 до 100!");
+        alert(currentTexts.resultEnterNumber);
         guessInput.value = '';
         return;
     }
@@ -162,7 +394,7 @@ function checkGuess() {
     if (history.includes(guess)) {
         resultElement.classList.remove('green-text', 'yellow-text', 'blue-text');
         resultElement.classList.add('red-text');
-        resultElement.textContent = `Ты уже это число вводил! Попробуй другое.`;
+        resultElement.textContent = currentTexts.resultAlreadyGuessed;
         guessInput.value = '';
         return;
     }
@@ -173,21 +405,22 @@ function checkGuess() {
     if (guess === targetNumber) {
         resultElement.classList.remove('yellow-text', 'blue-text', 'red-text');
         resultElement.classList.add('green-text');
-        resultElement.textContent = `🎉 Верно! Ты угадал число ${targetNumber}. Количество попыток: ${attempts} 🎉`;
+        resultElement.textContent = currentTexts.resultCorrect(targetNumber, attempts);
         messageElement.style.display = 'none';
-        guessInput.disabled = true; // Отключаем ввод после победы
+        guessInput.disabled = true; 
+        checkAchievements(); 
     } else if (guess > targetNumber) {
         resultElement.classList.remove('green-text', 'yellow-text', 'blue-text');
         resultElement.classList.add('red-text');
-        resultElement.textContent = `Неверно! Сделай число поменьше.`;
+        resultElement.textContent = currentTexts.resultTooHigh;
     } else {
         resultElement.classList.remove('green-text', 'yellow-text', 'red-text');
         resultElement.classList.add('blue-text');
-        resultElement.textContent = `Неверно! Сделай число побольше.`;
+        resultElement.textContent = currentTexts.resultTooLow;
     }
 
     updateClues();
-    guessInput.value = ''; // Очищаем поле ввода после каждой попытки
+    guessInput.value = ''; 
 }
 
 // Обновление списка подсказок
@@ -195,7 +428,6 @@ function updateClues() {
     let cluesElement = document.getElementById('clues-list');
     cluesElement.innerHTML = '';
 
-    // Добавляем новую подсказку только если ее еще нет и есть доступные
     if (clues.length < attempts && availableClueOptions.length > 0) {
         let randomIndex = Math.floor(Math.random() * availableClueOptions.length);
         let newClue = availableClueOptions.splice(randomIndex, 1)[0]; 
@@ -211,7 +443,7 @@ function updateClues() {
 
 // Перезагрузка игры
 function resetGame() {
-    setupGame(); // Полная перенастройка игры
+    setupGame(); 
     const resultElement = document.getElementById('result');
     const messageElement = document.getElementById('message');
     const guessInput = document.getElementById('guessInput');
@@ -219,11 +451,18 @@ function resetGame() {
     resultElement.textContent = '';
     resultElement.classList.remove('green-text', 'yellow-text', 'blue-text', 'red-text');
     messageElement.style.display = '';
-    messageElement.textContent = 'Попробуй угадать число от 1 до 100!';
+    messageElement.textContent = texts[currentLang].message;
     guessInput.value = '';
-    guessInput.disabled = false; // Включаем ввод
+    guessInput.disabled = false;
+    renderAchievements();
+    updateTexts(); // Обновляем тексты после сброса на случай, если язык был изменен
 }
 
+// Инициализация при загрузке страницы
+loadAchievements();
+setupGame();
+updateTexts(); // Обновляем тексты при первой загрузке
+renderAchievements();
 </script>
 
 </body>
