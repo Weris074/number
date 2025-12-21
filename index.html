@@ -13,7 +13,7 @@
         }
         
         @keyframes bg-pulse {
-            from {background-position: 0%; transform: scale(1);}
+            from {background-position: 0%; transform: scale(1);} 
             to {background-position: 100%; transform: scale(1.02); animation-timing-function: ease-in-out;} /* Уменьшил масштабирование */
         }
         
@@ -157,8 +157,8 @@
 </div>
 
 <script>
-let targetNumber = null;
-let attempts = 0;
+let targetNumber;
+let attempts;
 let history = []; 
 let clues = [];
 let availableClueOptions = []; 
@@ -195,6 +195,8 @@ const texts = {
         clueOdd: 'Это число нечётное',
         cluePrime: 'Это число простое',
         clueNotPrime: 'Это число не простое',
+        clueDivisibleBy: (num) => `Это число делится на ${num}`,
+        clueSumOfDigits: (sum) => `Сумма цифр числа равна ${sum}`,
     },
     'en': {
         gameTitle: '🎉 Guess The Number Game! 🎉',
@@ -226,6 +228,8 @@ const texts = {
         clueOdd: 'This number is odd',
         cluePrime: 'This number is prime',
         clueNotPrime: 'This number is not prime',
+        clueDivisibleBy: (num) => `This number is divisible by ${num}`,
+        clueSumOfDigits: (sum) => `The sum of the digits is ${sum}`,
     }
 };
 
@@ -344,14 +348,31 @@ function closestSquareRoot(num) {
     return Math.round(Math.sqrt(num));
 }
 
+// Функция для расчета суммы цифр числа
+function sumDigits(num) {
+    let sum = 0;
+    let strNum = String(num); // Преобразуем число в строку
+    for (let i = 0; i < strNum.length; i++) {
+        sum += parseInt(strNum[i], 10); // Преобразуем каждый символ обратно в число и складываем
+    }
+    return sum;
+}
+
 // Инициализация доступных подсказок для новой игры
 function initializeClueOptions() {
     const currentTexts = texts[currentLang];
-    availableClueOptions = [
-        () => currentTexts.clueMoreThan(Math.min(targetNumber - 10, targetNumber - 1 > 1 ? targetNumber - 1 : 1)),
-        () => currentTexts.clueLessThan(Math.max(targetNumber + 10, targetNumber + 1 < 100 ? targetNumber + 1 : 100)),
-        () => currentTexts.clueClosestSquare(closestSquareRoot(targetNumber)),
-    ];
+    // Обновленные опции для подсказок
+    availableClueOptions = []; 
+
+    // Подсказка "больше чем X"
+    const lowerBoundForMoreThan = Math.max(1, targetNumber - Math.floor(Math.random() * 10) - 1);
+    availableClueOptions.push(() => currentTexts.clueMoreThan(lowerBoundForMoreThan));
+
+    // Подсказка "меньше чем Y"
+    const upperBoundForLessThan = Math.min(100, targetNumber + Math.floor(Math.random() * 10) + 1);
+    availableClueOptions.push(() => currentTexts.clueLessThan(upperBoundForLessThan));
+
+    availableClueOptions.push(() => currentTexts.clueClosestSquare(closestSquareRoot(targetNumber)));
 
     if (targetNumber % 2 === 0) {
         availableClueOptions.push(() => currentTexts.clueEven);
@@ -361,8 +382,26 @@ function initializeClueOptions() {
 
     if (isPrime(targetNumber)) {
         availableClueOptions.push(() => currentTexts.cluePrime);
-    } else if (targetNumber > 1) { // Добавляем подсказку "не простое", если число не простое и больше 1
+    } else if (targetNumber > 1) { 
         availableClueOptions.push(() => currentTexts.clueNotPrime);
+    }
+
+    // НОВАЯ ПОДСКАЗКА: Делится на случайное число
+    // Выбираем делитель (например, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+    // Убедимся, что число делится на этот делитель без остатка
+    if (targetNumber > 1) { 
+        const possibleDivisors = [2, 3, 4, 5, 6, 7, 8, 9, 10];
+        const validDivisors = possibleDivisors.filter(d => targetNumber % d === 0);
+        
+        if (validDivisors.length > 0) {
+            const randomDivisor = validDivisors[Math.floor(Math.random() * validDivisors.length)];
+            availableClueOptions.push(() => currentTexts.clueDivisibleBy(randomDivisor));
+        }
+    }
+
+    // НОВАЯ ПОДСКАЗКА: Сумма цифр
+    if (targetNumber > 0) { // Сумма цифр имеет смысл для любого положительного числа
+        availableClueOptions.push(() => currentTexts.clueSumOfDigits(sumDigits(targetNumber)));
     }
 }
 
