@@ -308,11 +308,6 @@
     <button id="lang-button" onclick="toggleLanguage()"></button>
 </div>
 
-<audio id="winSound" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" preload="auto"></audio>
-<audio id="loseSound" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" preload="auto"></audio>
-<audio id="buttonClickSound" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3" preload="auto"></audio>
-<audio id="achievementSound" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3" preload="auto"></audio>
-
 <script>
 const GAME_VERSION = 'v10.0';
 let targetNumber;
@@ -424,17 +419,17 @@ const texts = {
     'en': {
         gameTitle: '🎉 Guess The Number Game! 🎉',
         messageInitial: 'Try to guess the number from 1 to 100!',
-        messageWithRange: (min, max) => `Try to guess the number from ${min} to ${max}!`,
+        messageWithRange: (min, max) => `Try to guess the number from ${min} to ${max}!`, 
         inputPlaceholder: 'Enter your guess...',
         checkButton: '✅ Check!',
         resetButton: '🔄 Reset Game',
         getClueButton: '❓ Clue',
         toggleAchievementsButton: '🏆 Achievements',
         toggleStatsButton: '📊 Statistics',
-        resultEnterNumber: (min, max) => `You must enter a number between ${min} and ${max}!`,
+        resultEnterNumber: (min, max) => `You must enter a number between ${min} and ${max}!`, 
         resultInvalidRange: 'Invalid number range! Min number from 1 to 99, Max from 2 to 1000, and Min must be less than Max.',
         resultAlreadyGuessed: 'You already guessed this number! Try another.',
-        resultCorrect: (num, att) => `🎉 Correct! You guessed ${num}. Attempts: ${att} 🎉`,
+        resultCorrect: (num, att) => `🎉 Correct! You guessed ${num}. Attempts: ${att} 🎉`, 
         resultTooHigh: 'Incorrect! Go lower.',
         resultTooLow: 'Incorrect! Go higher.',
         cluesHeader: 'Clues:',
@@ -444,7 +439,7 @@ const texts = {
             'genius_guess': { name: 'Genius Guess', description: 'Guess the number in 1 attempt' },
             'easy_peasy': { name: 'Easy Peasy', description: 'Guess the number in less than 5 attempts' },
             'first_win': { name: 'I Did It', description: 'Win for the first time' },
-            'encyclopedist': { name: 'Encyclopedist', description: 'Use 5 different clue types in one game' },
+            'encyclopedist': { name: 'Encyclopedist', description: 'Use 5 different clue types in one game' }, 
             'clue_sniper': { name: 'Clue Sniper', description: 'Guess the number using no more than 2 clues' },
             'big_range_win': { name: '1 Mine, Big Field', description: 'Win in range with max > 200' }, 
             'foreign_no_clue': { name: 'What Are You Saying?', description: 'Win in English without clues' }, 
@@ -597,14 +592,12 @@ function updateTexts() {
 }
 
 function toggleLanguage() {
-    buttonClickSound.play();
     currentLang = currentLang === 'ru' ? 'en' : 'ru';
     localStorage.setItem('guessTheNumberLang', currentLang);
     updateTexts();
 }
 
 function reportBug() {
-    buttonClickSound.play();
     const email = 'ktowka18@gmail.com';
     const subject = encodeURIComponent(`Баг в игре Угадай число (${GAME_VERSION})`);
     const body = encodeURIComponent(
@@ -648,7 +641,6 @@ function renderPlayerStats() {
 }
 
 function toggleAchievements() {
-    buttonClickSound.play();
     const achievementsContainer = document.getElementById('achievements-container');
     const statsContainer = document.getElementById('player-stats-container');
     if (achievementsContainer.style.display === 'none') {
@@ -660,7 +652,6 @@ function toggleAchievements() {
 }
 
 function toggleStats() {
-    buttonClickSound.play();
     const statsContainer = document.getElementById('player-stats-container');
     const achievementsContainer = document.getElementById('achievements-container');
     if (statsContainer.style.display === 'none') {
@@ -679,7 +670,6 @@ function checkAchievements() {
         if (!achievements[key].unlocked) {
             achievements[key].unlocked = true;
             alert(alertMessage);
-            achievementSound.play();
             newAchievementUnlocked = true;
         }
     };
@@ -906,7 +896,6 @@ function initializeClueOptions() {
 }
 
 function toggleRangeSettings() {
-    buttonClickSound.play();
     const rangeSettings = document.getElementById('range-settings');
     if (rangeSettings.style.display === 'none') {
         rangeSettings.style.display = 'block';
@@ -918,7 +907,6 @@ function toggleRangeSettings() {
 }
 
 function startGameWithRange() {
-    buttonClickSound.play();
     const currentTexts = texts[currentLang];
     let newMin = parseInt(document.getElementById('minRangeInput').value, 10);
     let newMax = parseInt(document.getElementById('maxRangeInput').value, 10);
@@ -939,7 +927,6 @@ function startGameWithRange() {
 }
 
 function getNewClue() {
-    buttonClickSound.play();
     const cluesList = document.getElementById('clues-list');
     const currentTexts = texts[currentLang];
 
@@ -978,7 +965,6 @@ function setupGame() {
 }
 
 function checkGuess() {
-    buttonClickSound.play();
     const guessInput = document.getElementById('guessInput');
     const guess = parseInt(guessInput.value.trim(), 10);
     const resultElement = document.getElementById('result');
@@ -1003,7 +989,6 @@ function checkGuess() {
     history.push(guess);
 
     if (guess === targetNumber) {
-        winSound.play();
         resultElement.classList.remove('yellow-text', 'blue-text', 'red-text');
         resultElement.classList.add('green-text');
         resultElement.textContent = currentTexts.resultCorrect(targetNumber, attempts);
@@ -1023,12 +1008,10 @@ function checkGuess() {
         checkAchievements(); 
         renderPlayerStats();
     } else if (guess > targetNumber) {
-        loseSound.play();
         resultElement.classList.remove('green-text', 'yellow-text', 'blue-text');
         resultElement.classList.add('red-text');
         resultElement.textContent = currentTexts.resultTooHigh;
     } else {
-        loseSound.play();
         resultElement.classList.remove('green-text', 'yellow-text', 'red-text');
         resultElement.classList.add('blue-text');
         resultElement.textContent = currentTexts.resultTooLow;
@@ -1038,7 +1021,6 @@ function checkGuess() {
 }
 
 function resetGame() {
-    buttonClickSound.play();
     if (!isWon) { 
         consecutiveLosses++;
         localStorage.setItem('guessTheNumberLosses', consecutiveLosses);
@@ -1068,11 +1050,6 @@ function resetGame() {
     renderPlayerStats();
     updateTexts(); 
 }
-
-const winSound = document.getElementById('winSound');
-const loseSound = document.getElementById('loseSound');
-const buttonClickSound = document.getElementById('buttonClickSound');
-const achievementSound = document.getElementById('achievementSound');
 
 loadAchievements();
 setupGame();
