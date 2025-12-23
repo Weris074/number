@@ -148,18 +148,43 @@
             content: '🏆'; 
         }
 
-        #toggle-achievements-button-wrapper {
+        #player-stats-container {
+            margin-top: 40px;
+            padding: 20px;
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+            display: none; 
+            margin-bottom: 20px; 
+        }
+        #player-stats-container h2 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+        .stat-item {
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+            color: #555;
+            text-align: left; 
+        }
+
+        #toggle-buttons-wrapper {
             position: absolute; 
             bottom: 80px; 
             left: 50%;
             transform: translateX(-50%);
             display: flex;
+            flex-wrap: wrap; 
             justify-content: center;
+            gap: 10px;
             width: 100%; 
             z-index: 10; 
         }
 
-        #toggle-achievements-button {
+        #toggle-buttons-wrapper button {
             padding: 10px 15px;
             font-size: 1rem;
             border-radius: 8px;
@@ -171,7 +196,7 @@
             transition: background-color 0.2s;
             min-width: 150px;
         }
-        #toggle-achievements-button:hover {
+        #toggle-buttons-wrapper button:hover {
             background-color: #0056b3;
         }
 
@@ -239,6 +264,7 @@
         <button onclick="setBackground('dark')">Тёмная Тема</button>
         <button onclick="setBackground('green_yellow')">Луг</button>
         <button onclick="setBackground('paper')">Холст Бумаги</button>
+        <button onclick="setBackground('neon')">Неон</button>
     </div>
 </div>
 
@@ -265,8 +291,15 @@
     </div>
 </div>
 
-<div id="toggle-achievements-button-wrapper">
+<div id="player-stats-container">
+    <h2 id="player-stats-title">Твоя Статистика</h2>
+    <div id="player-stats-list">
+    </div>
+</div>
+
+<div id="toggle-buttons-wrapper">
     <button id="toggle-achievements-button" onclick="toggleAchievements()"></button>
+    <button id="toggle-stats-button" onclick="toggleStats()"></button>
 </div>
 
 <div id="footer-buttons">
@@ -275,8 +308,13 @@
     <button id="lang-button" onclick="toggleLanguage()"></button>
 </div>
 
+<audio id="winSound" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" preload="auto"></audio>
+<audio id="loseSound" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" preload="auto"></audio>
+<audio id="buttonClickSound" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3" preload="auto"></audio>
+<audio id="achievementSound" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3" preload="auto"></audio>
+
 <script>
-const GAME_VERSION = 'v9.5';
+const GAME_VERSION = 'v10.0';
 let targetNumber;
 let attempts;
 let minNumber = 1; 
@@ -290,11 +328,21 @@ let isWon = false;
 let consecutiveLosses = parseInt(localStorage.getItem('guessTheNumberLosses')) || 0; 
 let currentBackground = localStorage.getItem('guessTheNumberBackground') || 'peach'; 
 
+let playerStats = JSON.parse(localStorage.getItem('guessTheNumberStats')) || {
+    totalGames: 0,
+    totalWins: 0,
+    totalLosses: 0,
+    totalAttempts: 0,
+    avgAttemptsPerWin: 0,
+    maxRangeWin: 0
+};
+
 const backgrounds = {
     'peach': 'linear-gradient(to right bottom, #f7eae1, #fadbc8)', 
     'dark': 'linear-gradient(to right bottom, #2c3e50, #000000)',
     'green_yellow': 'linear-gradient(to right bottom, #a8e063, #56ab2f)',
     'paper': 'linear-gradient(to right bottom, #f5f5dc, #ffffff)',
+    'neon': 'linear-gradient(to right bottom, #000000, #4b0082, #8a2be2, #00ffff)', 
 };
 
 const texts = {
@@ -307,6 +355,7 @@ const texts = {
         resetButton: '🔄 Сбросить игру',
         getClueButton: '❓ Подсказка',
         toggleAchievementsButton: '🏆 Достижения',
+        toggleStatsButton: '📊 Статистика',
         resultEnterNumber: (min, max) => `Нужно ввести число от ${min} до ${max}!`,
         resultInvalidRange: 'Неверный диапазон чисел! Мин. число от 1 до 99, Макс. от 2 до 1000, и Мин. должно быть меньше Макс.',
         resultAlreadyGuessed: 'Ты уже это число вводил! Попробуй другое.',
@@ -324,7 +373,10 @@ const texts = {
             'clue_sniper': { name: 'Снайпер подсказок', description: 'Угадать число, запросив не более 2 подсказок' },
             'big_range_win': { name: '1 мина, большое поле', description: 'Выиграть в диапазоне с max > 200' }, 
             'foreign_no_clue': { name: 'Что говоришь?', description: 'Выиграть на английском без подсказок' }, 
-            'impossible_challenge': { name: 'Это невозможно', description: 'Проиграть 5 игр подряд, затем выиграть шестую' } 
+            'impossible_challenge': { name: 'Это невозможно', description: 'Проиграть 5 игр подряд, затем выиграть шестую' },
+            'master_of_tens': { name: 'Мастер десяток', description: 'Угадать число, которое делится на 10' }, 
+            'no_clues_expert': { name: 'Эксперт без подсказок', description: 'Выиграть 3 игры подряд без использования подсказок' },
+            'high_roller': { name: 'Рисковый игрок', description: 'Выиграть в диапазоне с max > 500' }
         },
         alertAchieveGenius: 'Достижение разблокировано: Очень просто для гения!',
         alertAchieveEasy: 'Достижение разблокировано: Это было просто!',
@@ -334,9 +386,21 @@ const texts = {
         alertAchieveBigRangeWin: 'Достижение разблокировано: 1 мина, большое поле!',
         alertAchieveForeignNoClue: 'Достижение разблокировано: Что говоришь?!',
         alertAchieveImpossibleChallenge: 'Достижение разблокировано: Это невозможно!',
+        alertAchieveMasterOfTens: 'Достижение разблокировано: Мастер десяток!',
+        alertAchieveNoCluesExpert: 'Достижение разблокировано: Эксперт без подсказок!',
+        alertAchieveHighRoller: 'Достижение разблокировано: Рисковый игрок!',
         reportButton: 'Сообщить о баге',
         langButton: 'Eng',
         toggleRangeButton: 'Настройки диапазона',
+        playerStatsTitle: 'Твоя Статистика',
+        playerStats: {
+            totalGames: 'Всего игр: ',
+            totalWins: 'Побед: ',
+            totalLosses: 'Поражений: ',
+            totalAttempts: 'Всего попыток: ',
+            avgAttemptsPerWin: 'Ср. попыток на победу: ',
+            maxRangeWin: 'Макс. диапазон победы: '
+        },
         clueMoreThan: (num) => `Число точно больше ${num}`,
         clueLessThan: (num) => `Число точно меньше ${num}`,
         clueClosestSquare: (num) => `Это число ближе всего к квадрату числа ${num}`,
@@ -348,6 +412,14 @@ const texts = {
         clueSumOfDigits: (sum) => `Сумма цифр числа равна ${sum}`,
         clueContainsDigit: (digit) => `Число содержит цифру ${digit}`,
         clueClosestRound: (num) => `Число ближе всего к ${num}`,
+        clueFibonacci: 'Это число является числом Фибоначчи',
+        clueNotFibonacci: 'Это число не является числом Фибоначчи',
+        clueFactorCount: (count) => `Число имеет ${count} делителей`,
+        clueIsPerfectSquare: 'Это число - идеальный квадрат',
+        clueIsNotPerfectSquare: 'Это число не идеальный квадрат',
+        cluePalindrome: 'Это число - палиндром',
+        clueNotPalindrome: 'Это число не палиндром',
+        clueDifferenceFromMiddle: (diff) => `Разница от середины диапазона: ${diff}`,
     },
     'en': {
         gameTitle: '🎉 Guess The Number Game! 🎉',
@@ -358,6 +430,7 @@ const texts = {
         resetButton: '🔄 Reset Game',
         getClueButton: '❓ Clue',
         toggleAchievementsButton: '🏆 Achievements',
+        toggleStatsButton: '📊 Statistics',
         resultEnterNumber: (min, max) => `You must enter a number between ${min} and ${max}!`,
         resultInvalidRange: 'Invalid number range! Min number from 1 to 99, Max from 2 to 1000, and Min must be less than Max.',
         resultAlreadyGuessed: 'You already guessed this number! Try another.',
@@ -375,7 +448,10 @@ const texts = {
             'clue_sniper': { name: 'Clue Sniper', description: 'Guess the number using no more than 2 clues' },
             'big_range_win': { name: '1 Mine, Big Field', description: 'Win in range with max > 200' }, 
             'foreign_no_clue': { name: 'What Are You Saying?', description: 'Win in English without clues' }, 
-            'impossible_challenge': { name: 'This Is Impossible', description: 'Lose 5 games in a row, then win the sixth' } 
+            'impossible_challenge': { name: 'This Is Impossible', description: 'Lose 5 games in a row, then win the sixth' },
+            'master_of_tens': { name: 'Master of Tens', description: 'Guess a number divisible by 10' }, 
+            'no_clues_expert': { name: 'No Clues Expert', description: 'Win 3 games in a row without using clues' },
+            'high_roller': { name: 'High Roller', description: 'Win in range with max > 500' }
         },
         alertAchieveGenius: 'Achievement Unlocked: Genius Guess!',
         alertAchieveEasy: 'Achievement Unlocked: Easy Peasy!',
@@ -385,9 +461,21 @@ const texts = {
         alertAchieveBigRangeWin: 'Achievement Unlocked: 1 Mine, Big Field!',
         alertAchieveForeignNoClue: 'Achievement Unlocked: What Are You Saying?!',
         alertAchieveImpossibleChallenge: 'Achievement Unlocked: This Is Impossible!',
+        alertAchieveMasterOfTens: 'Achievement Unlocked: Master of Tens!',
+        alertAchieveNoCluesExpert: 'Achievement Unlocked: No Clues Expert!',
+        alertAchieveHighRoller: 'Achievement Unlocked: High Roller!',
         reportButton: 'Report Bug',
         langButton: 'Ru',
         toggleRangeButton: 'Range Settings',
+        playerStatsTitle: 'Your Statistics',
+        playerStats: {
+            totalGames: 'Total Games: ',
+            totalWins: 'Wins: ',
+            totalLosses: 'Losses: ',
+            totalAttempts: 'Total Attempts: ',
+            avgAttemptsPerWin: 'Avg Attempts per Win: ',
+            maxRangeWin: 'Max Range Win: '
+        },
         clueMoreThan: (num) => `The number is definitely greater than ${num}`,
         clueLessThan: (num) => `The number is definitely less than ${num}`,
         clueClosestSquare: (num) => `This number is closest to the square of ${num}`,
@@ -399,6 +487,14 @@ const texts = {
         clueSumOfDigits: (sum) => `The sum of the digits is ${sum}`,
         clueContainsDigit: (digit) => `The number contains the digit ${digit}`,
         clueClosestRound: (num) => `The number is closest to ${num}`,
+        clueFibonacci: 'This number is a Fibonacci number',
+        clueNotFibonacci: 'This number is not a Fibonacci number',
+        clueFactorCount: (count) => `The number has ${count} factors`,
+        clueIsPerfectSquare: 'This number is a perfect square',
+        clueIsNotPerfectSquare: 'This number is not a perfect square',
+        cluePalindrome: 'This number is a palindrome',
+        clueNotPalindrome: 'This number is not a palindrome',
+        clueDifferenceFromMiddle: (diff) => `Difference from middle of range: ${diff}`,
     }
 };
 
@@ -410,8 +506,13 @@ let achievements = {
     'clue_sniper': { name: '', description: '', unlocked: false },
     'big_range_win': { name: '', description: '', unlocked: false }, 
     'foreign_no_clue': { name: '', description: '', unlocked: false }, 
-    'impossible_challenge': { name: '', description: '', unlocked: false } 
+    'impossible_challenge': { name: '', description: '', unlocked: false },
+    'master_of_tens': { name: '', description: '', unlocked: false }, 
+    'no_clues_expert': { name: '', description: '', unlocked: false },
+    'high_roller': { name: '', description: '', unlocked: false }
 };
+
+let gamesWithoutClues = parseInt(localStorage.getItem('guessTheNumberNoCluesWins')) || 0;
 
 function loadAchievements() {
     const savedAchievements = localStorage.getItem('guessTheNumberAchievements');
@@ -429,11 +530,40 @@ function saveAchievements() {
     localStorage.setItem('guessTheNumberAchievements', JSON.stringify(achievements));
 }
 
+function savePlayerStats() {
+    localStorage.setItem('guessTheNumberStats', JSON.stringify(playerStats));
+}
+
 function setBackground(theme) {
     if (backgrounds[theme]) {
         document.body.style.backgroundImage = backgrounds[theme];
         currentBackground = theme; 
         localStorage.setItem('guessTheNumberBackground', theme);
+
+        const isDarkTheme = theme === 'dark' || theme === 'neon';
+        document.getElementById('game-title').style.color = isDarkTheme ? 'white' : 'white'; 
+        document.getElementById('message').style.color = isDarkTheme ? 'lightgray' : 'white';
+        document.getElementById('clues-header').style.color = isDarkTheme ? 'white' : '#333';
+        
+        const cluesListItems = document.querySelectorAll('#clues-list li');
+        cluesListItems.forEach(item => {
+            item.style.color = isDarkTheme ? 'lightgray' : '#333';
+        });
+
+        const achievementsContainer = document.getElementById('achievements-container');
+        const statsContainer = document.getElementById('player-stats-container');
+
+        if (isDarkTheme) {
+            achievementsContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+            statsContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+            achievementsContainer.querySelectorAll('h2, .achievement-item').forEach(el => el.style.color = 'white');
+            statsContainer.querySelectorAll('h2, .stat-item').forEach(el => el.style.color = 'white');
+        } else {
+            achievementsContainer.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
+            statsContainer.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
+            achievementsContainer.querySelectorAll('h2, .achievement-item').forEach(el => el.style.color = '#333');
+            statsContainer.querySelectorAll('h2, .stat-item').forEach(el => el.style.color = '#555');
+        }
     }
 }
 
@@ -451,6 +581,8 @@ function updateTexts() {
     document.getElementById('lang-button').textContent = currentTexts.langButton;
     document.getElementById('toggle-range-button').textContent = currentTexts.toggleRangeButton;
     document.getElementById('toggle-achievements-button').textContent = currentTexts.toggleAchievementsButton; 
+    document.getElementById('toggle-stats-button').textContent = currentTexts.toggleStatsButton; 
+    document.getElementById('player-stats-title').textContent = currentTexts.playerStatsTitle;
 
     document.getElementById('message').textContent = currentTexts.messageWithRange(minNumber, maxNumber);
 
@@ -460,23 +592,19 @@ function updateTexts() {
     }
 
     renderAchievements();
-
-    if (currentBackground === 'dark') {
-        document.getElementById('game-title').style.color = 'white';
-        document.getElementById('message').style.color = 'lightgray';
-    } else {
-        document.getElementById('game-title').style.color = 'white'; 
-        document.getElementById('message').style.color = 'white';
-    }
+    renderPlayerStats();
+    setBackground(currentBackground); 
 }
 
 function toggleLanguage() {
+    buttonClickSound.play();
     currentLang = currentLang === 'ru' ? 'en' : 'ru';
     localStorage.setItem('guessTheNumberLang', currentLang);
     updateTexts();
 }
 
 function reportBug() {
+    buttonClickSound.play();
     const email = 'ktowka18@gmail.com';
     const subject = encodeURIComponent(`Баг в игре Угадай число (${GAME_VERSION})`);
     const body = encodeURIComponent(
@@ -506,53 +634,103 @@ function renderAchievements() {
     }
 }
 
+function renderPlayerStats() {
+    const statsList = document.getElementById('player-stats-list');
+    statsList.innerHTML = '';
+    const currentTexts = texts[currentLang];
+
+    for (const key in playerStats) {
+        const item = document.createElement('div');
+        item.classList.add('stat-item');
+        item.textContent = currentTexts.playerStats[key] + playerStats[key];
+        statsList.appendChild(item);
+    }
+}
+
 function toggleAchievements() {
+    buttonClickSound.play();
     const achievementsContainer = document.getElementById('achievements-container');
+    const statsContainer = document.getElementById('player-stats-container');
     if (achievementsContainer.style.display === 'none') {
         achievementsContainer.style.display = 'block';
+        statsContainer.style.display = 'none'; 
     } else {
         achievementsContainer.style.display = 'none';
     }
 }
 
+function toggleStats() {
+    buttonClickSound.play();
+    const statsContainer = document.getElementById('player-stats-container');
+    const achievementsContainer = document.getElementById('achievements-container');
+    if (statsContainer.style.display === 'none') {
+        statsContainer.style.display = 'block';
+        achievementsContainer.style.display = 'none'; 
+    } else {
+        statsContainer.style.display = 'none';
+    }
+}
+
 function checkAchievements() {
     const currentTexts = texts[currentLang];
-    if (attempts === 1 && !achievements.genius_guess.unlocked) {
-        achievements.genius_guess.unlocked = true;
-        alert(currentTexts.alertAchieveGenius);
+    let newAchievementUnlocked = false;
+
+    const unlock = (key, alertMessage) => {
+        if (!achievements[key].unlocked) {
+            achievements[key].unlocked = true;
+            alert(alertMessage);
+            achievementSound.play();
+            newAchievementUnlocked = true;
+        }
+    };
+
+    if (attempts === 1) {
+        unlock('genius_guess', currentTexts.alertAchieveGenius);
     }
-    if (attempts <= 5 && !achievements.easy_peasy.unlocked) {
-        achievements.easy_peasy.unlocked = true;
-        alert(currentTexts.alertAchieveEasy);
+    if (attempts <= 5) {
+        unlock('easy_peasy', currentTexts.alertAchieveEasy);
     }
     if (!achievements.first_win.unlocked) {
-        achievements.first_win.unlocked = true;
-        alert(currentTexts.alertAchieveFirst);
+        unlock('first_win', currentTexts.alertAchieveFirst);
     }
     
-    if (usedClueTypesInCurrentGame.size >= 5 && !achievements.encyclopedist.unlocked) {
-        achievements.encyclopedist.unlocked = true;
-        alert(currentTexts.alertAchieveEncyclopedist);
+    if (usedClueTypesInCurrentGame.size >= 5) {
+        unlock('encyclopedist', currentTexts.alertAchieveEncyclopedist);
     }
 
-    if (clues.length <= 2 && !achievements.clue_sniper.unlocked) {
-        achievements.clue_sniper.unlocked = true;
-        alert(currentTexts.alertAchieveClueSniper);
+    if (clues.length <= 2) {
+        unlock('clue_sniper', currentTexts.alertAchieveClueSniper);
     }
 
-    if (maxNumber > 200 && !achievements.big_range_win.unlocked) {
-        achievements.big_range_win.unlocked = true;
-        alert(currentTexts.alertAchieveBigRangeWin);
+    if (maxNumber > 200) {
+        unlock('big_range_win', currentTexts.alertAchieveBigRangeWin);
     }
 
-    if (currentLang === 'en' && clues.length === 0 && !achievements.foreign_no_clue.unlocked) {
-        achievements.foreign_no_clue.unlocked = true;
-        alert(currentTexts.alertAchieveForeignNoClue);
+    if (maxNumber > 500) {
+        unlock('high_roller', currentTexts.alertAchieveHighRoller);
     }
 
-    if (consecutiveLosses >= 5 && !achievements.impossible_challenge.unlocked) {
-        achievements.impossible_challenge.unlocked = true;
-        alert(currentTexts.alertAchieveImpossibleChallenge);
+    if (currentLang === 'en' && clues.length === 0) {
+        unlock('foreign_no_clue', currentTexts.alertAchieveForeignNoClue);
+    }
+
+    if (consecutiveLosses >= 5) {
+        unlock('impossible_challenge', currentTexts.alertAchieveImpossibleChallenge);
+    }
+
+    if (targetNumber % 10 === 0) {
+        unlock('master_of_tens', currentTexts.alertAchieveMasterOfTens);
+    }
+
+    if (clues.length === 0) {
+        gamesWithoutClues++;
+        localStorage.setItem('guessTheNumberNoCluesWins', gamesWithoutClues);
+        if (gamesWithoutClues >= 3) {
+            unlock('no_clues_expert', currentTexts.alertAchieveNoCluesExpert);
+        }
+    } else {
+        gamesWithoutClues = 0;
+        localStorage.setItem('guessTheNumberNoCluesWins', gamesWithoutClues);
     }
 
     saveAchievements();
@@ -573,6 +751,35 @@ function isPrime(num) {
     return num > 1;
 }
 
+function isPerfectSquare(num) {
+    const sqrt = Math.sqrt(num);
+    return sqrt === Math.floor(sqrt);
+}
+
+function isFibonacci(num) {
+    if (num < 0) return false;
+    if (num === 0 || num === 1) return true;
+
+    let a = 0;
+    let b = 1;
+    while (b < num) {
+        let temp = b;
+        b = a + b;
+        a = temp;
+    }
+    return b === num;
+}
+
+function getFactorCount(num) {
+    let count = 0;
+    for (let i = 1; i <= num; i++) {
+        if (num % i === 0) {
+            count++;
+        }
+    }
+    return count;
+}
+
 function closestSquareRoot(num) {
     return Math.round(Math.sqrt(num));
 }
@@ -584,6 +791,11 @@ function sumDigits(num) {
         sum += parseInt(strNum[i], 10); 
     }
     return sum;
+}
+
+function isPalindrome(num) {
+    const strNum = String(num);
+    return strNum === strNum.split('').reverse().join('');
 }
 
 function closestRoundNumber(num) {
@@ -666,9 +878,35 @@ function initializeClueOptions() {
     }
 
     availableClueOptions.push({ id: 'clue_closest_round', getClue: () => currentTexts.clueClosestRound(closestRoundNumber(targetNumber)) });
+
+    if (isFibonacci(targetNumber)) {
+        availableClueOptions.push({ id: 'clue_fibonacci', getClue: () => currentTexts.clueFibonacci });
+    } else {
+        availableClueOptions.push({ id: 'clue_not_fibonacci', getClue: () => currentTexts.clueNotFibonacci });
+    }
+
+    if (targetNumber > 0) {
+        availableClueOptions.push({ id: 'clue_factor_count', getClue: () => currentTexts.clueFactorCount(getFactorCount(targetNumber)) });
+    }
+
+    if (isPerfectSquare(targetNumber)) {
+        availableClueOptions.push({ id: 'clue_is_perfect_square', getClue: () => currentTexts.clueIsPerfectSquare });
+    } else {
+        availableClueOptions.push({ id: 'clue_is_not_perfect_square', getClue: () => currentTexts.clueIsNotPerfectSquare });
+    }
+
+    if (targetNumber > 9 && isPalindrome(targetNumber)) { 
+        availableClueOptions.push({ id: 'clue_palindrome', getClue: () => currentTexts.cluePalindrome });
+    } else if (targetNumber > 9) { 
+        availableClueOptions.push({ id: 'clue_not_palindrome', getClue: () => currentTexts.clueNotPalindrome });
+    }
+
+    const middle = Math.floor((maxNumber + minNumber) / 2);
+    availableClueOptions.push({ id: 'clue_difference_from_middle', getClue: () => currentTexts.clueDifferenceFromMiddle(Math.abs(targetNumber - middle)) });
 }
 
 function toggleRangeSettings() {
+    buttonClickSound.play();
     const rangeSettings = document.getElementById('range-settings');
     if (rangeSettings.style.display === 'none') {
         rangeSettings.style.display = 'block';
@@ -680,6 +918,7 @@ function toggleRangeSettings() {
 }
 
 function startGameWithRange() {
+    buttonClickSound.play();
     const currentTexts = texts[currentLang];
     let newMin = parseInt(document.getElementById('minRangeInput').value, 10);
     let newMax = parseInt(document.getElementById('maxRangeInput').value, 10);
@@ -700,6 +939,7 @@ function startGameWithRange() {
 }
 
 function getNewClue() {
+    buttonClickSound.play();
     const cluesList = document.getElementById('clues-list');
     const currentTexts = texts[currentLang];
 
@@ -738,6 +978,7 @@ function setupGame() {
 }
 
 function checkGuess() {
+    buttonClickSound.play();
     const guessInput = document.getElementById('guessInput');
     const guess = parseInt(guessInput.value.trim(), 10);
     const resultElement = document.getElementById('result');
@@ -762,19 +1003,32 @@ function checkGuess() {
     history.push(guess);
 
     if (guess === targetNumber) {
+        winSound.play();
         resultElement.classList.remove('yellow-text', 'blue-text', 'red-text');
         resultElement.classList.add('green-text');
         resultElement.textContent = currentTexts.resultCorrect(targetNumber, attempts);
         messageElement.style.display = 'none';
         guessInput.disabled = true; 
+        document.getElementById('check-button').disabled = true;
         document.getElementById('get-clue-button').disabled = true; 
         isWon = true; 
+        playerStats.totalGames++;
+        playerStats.totalWins++;
+        playerStats.totalAttempts += attempts;
+        if (maxNumber > playerStats.maxRangeWin) {
+            playerStats.maxRangeWin = maxNumber;
+        }
+        playerStats.avgAttemptsPerWin = playerStats.totalWins > 0 ? (playerStats.totalAttempts / playerStats.totalWins).toFixed(2) : 0;
+        savePlayerStats();
         checkAchievements(); 
+        renderPlayerStats();
     } else if (guess > targetNumber) {
+        loseSound.play();
         resultElement.classList.remove('green-text', 'yellow-text', 'blue-text');
         resultElement.classList.add('red-text');
         resultElement.textContent = currentTexts.resultTooHigh;
     } else {
+        loseSound.play();
         resultElement.classList.remove('green-text', 'yellow-text', 'red-text');
         resultElement.classList.add('blue-text');
         resultElement.textContent = currentTexts.resultTooLow;
@@ -784,9 +1038,13 @@ function checkGuess() {
 }
 
 function resetGame() {
+    buttonClickSound.play();
     if (!isWon) { 
         consecutiveLosses++;
         localStorage.setItem('guessTheNumberLosses', consecutiveLosses);
+        playerStats.totalGames++;
+        playerStats.totalLosses++;
+        savePlayerStats();
     } else { 
         consecutiveLosses = 0;
         localStorage.setItem('guessTheNumberLosses', consecutiveLosses);
@@ -803,17 +1061,25 @@ function resetGame() {
     document.getElementById('message').textContent = texts[currentLang].messageWithRange(minNumber, maxNumber);
     guessInput.value = '';
     guessInput.disabled = false;
+    document.getElementById('check-button').disabled = false;
     document.getElementById('get-clue-button').disabled = false; 
     cluesList.innerHTML = ''; 
     renderAchievements();
+    renderPlayerStats();
     updateTexts(); 
 }
+
+const winSound = document.getElementById('winSound');
+const loseSound = document.getElementById('loseSound');
+const buttonClickSound = document.getElementById('buttonClickSound');
+const achievementSound = document.getElementById('achievementSound');
 
 loadAchievements();
 setupGame();
 setBackground(currentBackground); 
 updateTexts(); 
 renderAchievements();
+renderPlayerStats();
 </script>
 
 </body>
