@@ -3,6 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <title>Игра Угадай Число</title>
+<!-- 🆕 PWA Meta Tags -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#667eea">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="УЧисло">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
 <style>
 body {
 font-family: Arial, sans-serif;
@@ -296,7 +304,7 @@ display: inline-block;
 margin-right: 10px;
 border: 2px solid #333;
 }
-/* 🆕 БОСТЫ */
+/* 🆕 БУСТЫ */
 .boost-item {
 display: flex;
 justify-content: space-between;
@@ -742,6 +750,13 @@ background: linear-gradient(135deg, #f5576c, #f093fb);
 <button class="theme-btn" data-theme="strawberry_cream" onclick="selectBackground('strawberry_cream')">Клубника</button>
 <button class="theme-btn" data-theme="green_tea" onclick="selectBackground('green_tea')">Зелёный чай</button>
 <button class="theme-btn" data-theme="purple_sunset" onclick="selectBackground('purple_sunset')">Фиолетовый закат</button>
+<button class="theme-btn" data-theme="grape" onclick="selectBackground('grape')">🍇 Виноград</button>
+<button class="theme-btn" data-theme="desert" onclick="selectBackground('desert')">🏜️ Пустыня</button>
+<button class="theme-btn" data-theme="cherry" onclick="selectBackground('cherry')">🍒 Вишня</button>
+<button class="theme-btn" data-theme="mango" onclick="selectBackground('mango')">🥭 Манго</button>
+<button class="theme-btn" data-theme="bamboo" onclick="selectBackground('bamboo')">🎋 Бамбук</button>
+<button class="theme-btn" data-theme="honey" onclick="selectBackground('honey')">🍯 Мёд</button>
+<button class="theme-btn" data-theme="ocean" onclick="selectBackground('ocean')">🌊 Океан</button>
 </div>
 <div style="margin-top:20px;">
 <button id="timer-mode-toggle" onclick="toggleTimerMode()">⏱️ Режим времени: ВЫКЛ</button>
@@ -785,7 +800,7 @@ background: linear-gradient(135deg, #f5576c, #f093fb);
 <button onclick="toggleLanguage()">🌐 Eng/Ru</button>
 </div>
 <script>
-const GAME_VERSION = 'v17.0';
+const GAME_VERSION = 'v18.0';
 const SECRET_EASTER_EGG_CODE = 'HIDDEN_CODE_2024';
 let targetNumber;
 let attempts;
@@ -911,7 +926,7 @@ let secretAchievements = JSON.parse(localStorage.getItem('guessTheNumberSecretAc
 'sixseven': { name: '6️⃣7️⃣ SIX SEVEN', description: 'Получить число 67', unlocked: false },
 'article228': { name: '📜 Не ну это статья', description: 'Получить число 228', unlocked: false },
 'hiddenCode': { name: '🔓 Да емае опять не спрятался', description: 'Найти секретный код в коде игры', unlocked: false },
-'wr074cup': { name: '🏆 wr074cup', description: 'Ввести wr074cup в ответе', unlocked: false }
+'wr074cup': { name: '🏆 wr074cup', description: 'Ввести код 742024', unlocked: false }
 };
 // 🆕 БОЛЬШЕ ЦИТАТ С ЧОКОПАЕМ И ПЕЛЬМЕНЯМИ!
 const quotes = [
@@ -956,6 +971,7 @@ const quotes = [
 '💭 Чокопай и удача — лучшие друзья игрока',
 '💭 Пельмени варятся, числа угадываются — всё по плану!'
 ];
+// 🆕 ВСЕ ТЕМЫ С НОВЫМИ ГРАДИЕНТАМИ
 const allThemes = {
 'peach': { name: 'Персиковый', gradient: 'linear-gradient(to right bottom, #f7eae1, #fadbc8)', price: 0 },
 'dark': { name: 'Тёмная', gradient: 'linear-gradient(to right bottom, #2c3e50, #000000)', price: 0 },
@@ -995,6 +1011,8 @@ quoteDisplay.style.animation = 'none';
 quoteDisplay.offsetHeight;
 quoteDisplay.style.animation = 'quote-fade 0.5s ease-in';
 quoteDisplay.textContent = randomQuote;
+quotesRead++;
+localStorage.setItem('guessTheNumberQuotesRead', quotesRead);
 }
 // 🆕 Функции магазина
 function openShopModal() {
@@ -1141,7 +1159,7 @@ secretAchievements: {
 'sixseven': { name: '6️⃣7️⃣ SIX SEVEN', description: 'Получить число 67' },
 'article228': { name: '📜 Не ну это статья', description: 'Получить число 228' },
 'hiddenCode': { name: '🔓 Да емае опять не спрятался', description: 'Найти секретный код' },
-'wr074cup': { name: '🏆 wr074cup', description: 'Ввести wr074cup в ответе' }
+'wr074cup': { name: '🏆 wr074cup', description: 'Ввести код 742024' }
 },
 alertAchieveGenius: '🏆 Гений!',
 alertAchieveEasy: '🏆 Легко!',
@@ -1170,7 +1188,7 @@ alertSecretJackpot777: '🔓 СЕКРЕТ: ДЖЕКПОТ 777!',
 alertSecretSixSeven: '🔓 СЕКРЕТ: SIX SEVEN!',
 alertSecretArticle228: '🔓 СЕКРЕТ: Не ну это статья...',
 alertSecretHiddenCode: '🔓 СЕКРЕТ: Да емае опять не спрятался!',
-alertSecretWr074cup: '🔓 СЕКРЕТ: wr074cup - ты нашёл!',
+alertSecretWr074cup: '🔓 СЕКРЕТ: 742024 - ты нашёл!',
 playerStats: {
 totalGames: 'Всего игр: ',
 totalWins: 'Побед: ',
@@ -1274,7 +1292,7 @@ secretAchievements: {
 'sixseven': { name: '6️⃣7️⃣ SIX SEVEN', description: 'Get number 67' },
 'article228': { name: '📜 Article 228', description: 'Get number 228' },
 'hiddenCode': { name: '🔓 Hidden Code', description: 'Find secret code' },
-'wr074cup': { name: '🏆 wr074cup', description: 'Enter wr074cup' }
+'wr074cup': { name: '🏆 wr074cup', description: 'Enter code 742024' }
 },
 alertAchieveGenius: '🏆 Genius!',
 alertAchieveEasy: '🏆 Easy!',
@@ -1303,7 +1321,7 @@ alertSecretJackpot777: '🔓 SECRET: JACKPOT 777!',
 alertSecretSixSeven: '🔓 SECRET: SIX SEVEN!',
 alertSecretArticle228: '🔓 SECRET: Article 228...',
 alertSecretHiddenCode: '🔓 SECRET: Hidden Code Found!',
-alertSecretWr074cup: '🔓 SECRET: wr074cup - you found it!',
+alertSecretWr074cup: '🔓 SECRET: 742024 - you found it!',
 playerStats: {
 totalGames: 'Total Games: ',
 totalWins: 'Wins: ',
@@ -1356,7 +1374,6 @@ if (!playerStats.mostGuessedNumbers) {
 playerStats.mostGuessedNumbers = {};
 }
 playerStats.mostGuessedNumbers[guess] = (playerStats.mostGuessedNumbers[guess] || 0) + 1;
-
 // Находим самое популярное число
 let maxCount = 0;
 let topNum = null;
@@ -1798,13 +1815,11 @@ function renderPlayerStats() {
 const list = document.getElementById('player-stats-list');
 list.innerHTML = '';
 const t = texts[currentLang];
-
 // 🆕 Рассчитываем winrate
-const winrate = playerStats.totalGames > 0 
-? Math.round((playerStats.totalWins / playerStats.totalGames) * 100) 
+const winrate = playerStats.totalGames > 0
+? Math.round((playerStats.totalWins / playerStats.totalGames) * 100)
 : 0;
 playerStats.winrate = winrate + '%';
-
 // Основные статистики
 const statsOrder = ['totalGames', 'totalWins', 'totalLosses', 'winrate', 'totalAttempts', 'avgAttemptsPerWin', 'maxRangeWin'];
 statsOrder.forEach(key => {
@@ -1817,7 +1832,6 @@ item.textContent = t.playerStats[key] + val;
 list.appendChild(item);
 }
 });
-
 // 🆕 Самое популярное число
 if (playerStats.topGuessedNumber) {
 const item = document.createElement('div');
@@ -1920,7 +1934,8 @@ addPointsForAchievement();
 saveSecretAchievements();
 renderAchievements();
 }
-if (history.includes('wr074cup') && !secretAchievements['wr074cup'].unlocked) {
+// 🆕 Числовой код вместо строки
+if (history.includes(742024) && !secretAchievements['wr074cup'].unlocked) {
 secretAchievements['wr074cup'].unlocked = true;
 alert(t.alertSecretWr074cup);
 addPointsForAchievement();
@@ -1979,6 +1994,9 @@ saveAchievements();
 renderAchievements();
 if (isWon) {
 consecutiveWins++;
+if (consecutiveWins > playerStats.bestStreak) {
+playerStats.bestStreak = consecutiveWins;
+}
 consecutiveLosses = 0;
 } else {
 consecutiveWins = 0;
@@ -2296,6 +2314,15 @@ renderPlayerStats();
 updatePointsDisplay();
 updateBackgroundButtons();
 renderLeaderboard();
+
+// 🆕 PWA Service Worker Registration
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(reg => console.log('✅ PWA готов!', reg))
+      .catch(err => console.log('❌ PWA ошибка:', err));
+  });
+}
 </script>
 </body>
 </html>
