@@ -712,18 +712,21 @@ background: linear-gradient(135deg, #f5576c, #f093fb);
 </div>
 </div>
 </div>
-<!-- Модальное окно для имени -->
-<div id="name-modal">
-<div id="name-modal-content">
-<h3>🎉 Победа!</h3>
-<p>Введи своё имя для таблицы лидеров:</p>
-<input type="text" id="player-name-input" placeholder="Твоё имя" maxlength="15">
-<p id="name-error">⚠️ Это имя уже занято!</p>
-<br>
-<button onclick="submitLeaderboardEntry()">✅ Сохранить результат</button>
-<button id="share-result-btn" onclick="shareResult()">📤 Поделиться</button>
-</div>
-</div>
+   <!-- 🆕 МОДАЛЬНОЕ ОКНО АВТОРИЗАЦИИ -->
+   <div id="auth-modal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:none;align-items:center;justify-content:center;z-index:2000;">
+     <div style="background:white;padding:30px;border-radius:15px;max-width:400px;text-align:center;">
+       <h3>🔐 Вход в аккаунт</h3>
+       <p style="color:#666;margin-bottom:15px;">Войди, чтобы сохранять результат автоматически!</p>
+       <input type="email" id="auth-email" placeholder="Email" style="width:80%;padding:10px;margin:10px 0;border-radius:8px;border:2px solid #007bff;font-size:1.1rem;">
+       <input type="password" id="auth-password" placeholder="Пароль" style="width:80%;padding:10px;margin:10px 0;border-radius:8px;border:2px solid #007bff;font-size:1.1rem;">
+       <p id="auth-error" style="color:#dc3545;font-size:0.9rem;margin-top:10px;display:none;"></p>
+       <div style="display:flex;gap:10px;justify-content:center;margin-top:15px;">
+         <button onclick="handleLogin()" style="background:#007bff;color:white;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:1rem;">Войти</button>
+         <button onclick="handleRegister()" style="background:#28a745;color:white;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:1rem;">Регистрация</button>
+       </div>
+       <button onclick="closeAuthModalAndSaveGuest()" style="margin-top:15px;background:transparent;border:none;color:#666;cursor:pointer;text-decoration:underline;font-size:0.9rem;">Продолжить как гость</button>
+     </div>
+   </div>
 <!-- Модальное окно поражения -->
 <div id="gameover-modal">
 <div id="gameover-modal-content">
@@ -798,8 +801,37 @@ background: linear-gradient(135deg, #f5576c, #f093fb);
 <button onclick="toggleRangeSettings()">⚙️ Настройки</button>
 <button onclick="reportBug()">📧 Баг-репорт</button>
 <button onclick="toggleLanguage()">🌐 Eng/Ru</button>
+<button id="logout-btn" onclick="handleLogout()" style="display: none; background: #dc3545;">🚪 Выйти</button>
 </div>
-<script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBPBpuIu7Vw7m4Qu03EO_FsbdIYjpr6w3k",
+  authDomain: "numbere.firebaseapp.com",
+  projectId: "numbere",
+  storageBucket: "numbere.firebasestorage.app",
+  messagingSenderId: "735599442332",
+  appId: "1:735599442332:web:97112dd36e7062b9a7b059"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+let currentUser = null;
+
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    currentUser = user;
+    playerName = user.email.split('@')[0];
+    const btn = document.getElementById('logout-btn');
+    if (btn) btn.style.display = 'inline-block';
+  } else {
+    currentUser = null;
+    playerName = localStorage.getItem('guessTheNumberPlayerName') || '';
+    const btn = document.getElementById('logout-btn');
+    if (btn) btn.style.display = 'none';
+  }
+});
 const GAME_VERSION = 'v18.0';
 const SECRET_EASTER_EGG_CODE = 'HIDDEN_CODE_2024';
 let targetNumber;
@@ -1542,50 +1574,87 @@ list.appendChild(item);
 });
 }
 function showNameModal() {
-const modal = document.getElementById('name-modal');
-const input = document.getElementById('player-name-input');
-const error = document.getElementById('name-error');
-input.value = playerName || '';
-error.style.display = 'none';
-input.classList.remove('error');
-modal.style.display = 'flex';
-input.focus();
-input.onkeydown = (e) => {
-if (e.key === 'Enter') submitLeaderboardEntry();
-};
+  if (currentUser) {
+    submitLeaderboardEntry();
+  } else {
+    const modal = document.getElementById('auth-modal');
+    document.getElementById('auth-email').value = '';
+    document.getElementById('auth-password').value = '';
+    document.getElementById('auth-error').style.display = 'none';
+    modal.style.display = 'flex';
+  }
 }
 function submitLeaderboardEntry() {
-const input = document.getElementById('player-name-input');
-const error = document.getElementById('name-error');
-const t = texts[currentLang];
-let name = input.value.trim();
-if (!name) name = 'Игрок';
-if (isNameTaken(name, playerId)) {
-input.classList.add('error');
-error.style.display = 'block';
-error.textContent = t.nameTaken;
-return;
+  const finalName = currentUser ? playerName : (playerName || "Гость_" + Math.floor(Math.random() * 1000));
+  leaderboard.push({
+    playerId: currentUser ? currentUser.uid : playerId,
+    name: finalName,
+    attempts: attempts,
+    score: playerPoints,
+    min: minNumber,
+    max: maxNumber,
+    date: Date.now(),
+    isVerified: !!currentUser
+  });
+  if (leaderboard.length > 50) {
+    leaderboard = leaderboard.sort((a, b) => {
+      if (a.attempts !== b.attempts) return a.attempts - b.attempts;
+      return b.date - a.date;
+    }).slice(0, 50);
+  }
+  saveLeaderboard();
+  document.getElementById('auth-modal').style.display = 'none';
+  renderLeaderboard();
 }
-playerName = name;
-localStorage.setItem('guessTheNumberPlayerName', playerName);
-leaderboard.push({
-playerId: playerId,
-name: playerName,
-attempts: attempts,
-score: playerPoints,
-min: minNumber,
-max: maxNumber,
-date: Date.now()
-});
-if (leaderboard.length > 50) {
-leaderboard = leaderboard.sort((a, b) => {
-if (a.attempts !== b.attempts) return a.attempts - b.attempts;
-return b.date - a.date;
-}).slice(0, 50);
+
+function closeAuthModalAndSaveGuest() {
+  document.getElementById('auth-modal').style.display = 'none';
+  playerName = "Гость_" + Math.floor(Math.random() * 1000);
+  submitLeaderboardEntry();
 }
-saveLeaderboard();
-document.getElementById('name-modal').style.display = 'none';
-renderLeaderboard();
+
+async function handleRegister() {
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const errorEl = document.getElementById('auth-error');
+  if (!email || !password) { errorEl.textContent = "Введите почту и пароль!"; errorEl.style.display = 'block'; return; }
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    currentUser = userCredential.user;
+    playerName = email.split('@')[0];
+    document.getElementById('auth-modal').style.display = 'none';
+    submitLeaderboardEntry();
+    alert("✅ Аккаунт создан!");
+  } catch (error) {
+    let msg = "Ошибка";
+    if (error.code === 'auth/email-already-in-use') msg = 'Эта почта уже занята.';
+    if (error.code === 'auth/weak-password') msg = 'Пароль минимум 6 символов.';
+    errorEl.textContent = msg; errorEl.style.display = 'block';
+  }
+}
+
+async function handleLogin() {
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const errorEl = document.getElementById('auth-error');
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    currentUser = userCredential.user;
+    playerName = email.split('@')[0];
+    document.getElementById('auth-modal').style.display = 'none';
+    submitLeaderboardEntry();
+  } catch (error) {
+    errorEl.textContent = "Неверная почта или пароль"; errorEl.style.display = 'block';
+  }
+}
+
+async function handleLogout() {
+  await signOut(auth);
+  currentUser = null;
+  playerName = '';
+  localStorage.removeItem('guessTheNumberPlayerName');
+  alert("Вы вышли из аккаунта");
+  location.reload();
 }
 function clearLeaderboard() {
 const t = texts[currentLang];
