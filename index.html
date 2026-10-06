@@ -1930,17 +1930,6 @@ others.forEach(id => document.getElementById(id).style.display = 'none');
 el.style.display = 'none';
 }
 }
-function toggleLeaderboard() {
-const el = document.getElementById('leaderboard-container');
-const others = ['achievements-container', 'player-stats-container'];
-if (el.style.display === 'none' || el.style.display === '') {
-el.style.display = 'block';
-others.forEach(id => document.getElementById(id).style.display = 'none');
-renderLeaderboard();
-} else {
-el.style.display = 'none';
-}
-}
 function addPointsForAchievement() {
 playerPoints += 5;
 updatePointsDisplay();
